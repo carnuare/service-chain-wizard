@@ -1,5 +1,20 @@
 {
+  "name": "service-chain-wizard",
+  "productName": "Import yaml to iTop",
+  "version": "0.1.0",
+  "main": "app.js",
+  "author": "Carlos N",
   "dependencies": {
+    "electron-packager": "17.1.1",
     "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "electron": "22.0.3"
+  },
+  "scripts": {
+    "start": "npx electron .",
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --prune=true --out=release-builds",
+    "package-win": "electron-packager . service-chain-wizard --overwrite --platform=win32 --arch=ia32 --prune=true --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName=\"Electron App\"",
+    "package-linux": "electron-packager . service-chain-wizard --overwrite --platform=linux --arch=x64 --prune=true --out=release-builds"
   }
 }

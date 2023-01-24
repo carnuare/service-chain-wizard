@@ -1,8 +1,22 @@
 # service-chain-wizard for iTop
-This NodeJS app takes a yaml file and imports the configuration into iTop's database.
+This NodeJS/Electron app takes a yaml file and imports the configuration into iTop's database.
+
+## Local run
 
 To run the tool make sure you have node installed in your system. In the root folder run:
 
     $ npm install
-    $ node app.js [path/to/file.yaml]
+    $ npm start
+
+## Build release
+
+Choose the one that suits you:
+
+    $ npm run package-mac
+    $ npm run package-win
+    $ npm run package-linux
+
+Then got o release-builds and run the executable file.
+
+
  

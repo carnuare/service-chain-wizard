@@ -3,3 +3,6 @@
 
 # local files
 /sample_yaml
+
+# build files
+/release-builds
