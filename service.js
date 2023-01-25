@@ -9,26 +9,19 @@ uploadFile.addEventListener('click', () => {
 
 ipcRenderer.on('file', (event, data) => {
   const fileDataContainer = document.getElementById('file-data');
+  // make #confirm-data visible
+  document.getElementById('confirm-data').style.display = 'block';
   fileDataContainer.innerHTML = JSON.stringify(data, null, 2);
 });
 
-// // Show a file open dialog when the user clicks a button
-// function selectFile() {
-//     dialog.showOpenDialog(mainWindow, {
-//       properties: ['openFile'],
-//       filters: [{ name: 'YAML Files', extensions: ['yaml'] }],
-//     }, (filePaths) => {
-//       if (filePaths) {
-//         // Read the file contents
-//         const fileContents = fs.readFileSync(filePaths[0], 'utf8');
-  
-//         // Parse the YAML file
-//         const data = yaml.load(fileContents);
-  
-//         // Log the contents of the YAML file to the console
-//         console.log(data);
-//         // you can use the mainWindow.webContents.send('file-data', data);
-//       }
-//     });
-//   };
+ipcRenderer.on('redirect', (event, url) => {
+  window.location.href = url;
+});
 
+// function importToiTop
+function importToiTop(server, username, password) {
+  var server = document.getElementById("server").value;
+  var username = document.getElementById("username").value;
+  var password = document.getElementById("password").value;
+  ipcRenderer.send('import-to-itop', server, username, password);
+}

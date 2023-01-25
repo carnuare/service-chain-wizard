@@ -1,9 +1,7 @@
-// Import the required modules
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, net } = require('electron');
 const path = require('path')
 const fs = require('fs');
 const yaml = require('js-yaml');
-
 
 const createWindow = () => {
   // Create the browser window.
@@ -25,9 +23,6 @@ const createWindow = () => {
   mainWindow.webContents.openDevTools()
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Algunas APIs pueden solamente ser usadas despues de que este evento ocurra.
 app.whenReady().then(() => {
     createWindow()
     app.on('activate', () => {
@@ -64,4 +59,52 @@ ipcMain.on('file-request', (event) => {
   }).catch(err => {
     console.log(err)
   });
+});
+
+ipcMain.on('import-to-itop', (event, server, username, password) => {
+  // make POST request to http://localhost/itop/web/webservices/rest.php 
+  // params: version = 1.3, json_data = {"operation": "list_operations"} 
+  // basic auth, username = admintop, password = admintop
+  try {
+    console.log(username + ":" + password)
+    const request = net.request({
+      method: 'POST',
+      protocol: 'http:',
+      hostname: 'localhost',
+      port: 80,
+      path: encodeURI('/itop/web/webservices/rest.php?version=1.3&json_data={"operation": "list_operations"}'),
+    });
+    request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+    request.setHeader('Authorization', 'Basic ' + Buffer.from(username + ":" + password).toString("base64"))
+    request.on('response', (response) => {
+      var body = "";
+      console.log(`STATUS: ${response.statusCode}`)
+      console.log(`HEADERS: ${JSON.stringify(response.headers)}`)
+      response.on('data', (chunk) => {
+        console.log(`BODY: ${chunk}`)
+        body += chunk;
+      });
+      response.on('end', () => {
+        console.log('No more data in response.');
+        // parse the body as json
+        var json = JSON.parse(body);
+        if (response.statusCode === 200 && json.code === 0) {
+            // send event 'redirect' to renderer process with url 'success.html'
+          event.sender.send('redirect', 'html/success.html');
+        } else {
+          // send event 'redirect' to renderer process with url 'error.html'
+          event.sender.send('redirect', 'html/error.html');
+        }
+      });
+    });
+    request.on('error', (error) => {
+      console.log(`ERROR: ${JSON.stringify(error)}`)
+    });
+    request.end();
+    // send event 'redirect' to renderer process with url 'importing.html'
+    // event.sender.send('redirect', 'html/importing.html');
+  } catch (err) {
+    console.log(err);
+  }
+  console.log('import to iTop');
 });

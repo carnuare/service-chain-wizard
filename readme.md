@@ -16,7 +16,7 @@ Choose the one that suits you:
     $ npm run package-win
     $ npm run package-linux
 
-Then got o release-builds and run the executable file.
+Then go to release-builds and run the executable file.
 
 
  
