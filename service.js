@@ -18,10 +18,16 @@ ipcRenderer.on('redirect', (event, url) => {
   window.location.href = url;
 });
 
+ipcRenderer.on('import-status', (event, status) => {
+  document.getElementById('import-status').innerHTML = status;
+  console.log('importing...');
+});
+
 // function importToiTop
 function importToiTop(server, username, password) {
   var server = document.getElementById("server").value;
   var username = document.getElementById("username").value;
   var password = document.getElementById("password").value;
-  ipcRenderer.send('import-to-itop', server, username, password);
+  var fileData = document.getElementById('file-data').innerHTML;
+  ipcRenderer.send('import-to-itop', server, username, password, fileData);
 }
