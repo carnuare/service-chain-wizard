@@ -64,17 +64,15 @@ ipcMain.on('file-request', (event) => {
 
 ipcMain.on('import-to-itop', async (event, server, username, password, fileData) => {
 
-  const { importData } = require('./src/js/import_iTOP.js');
-
+  const { importData, setConfig } = require('./src/js/import_iTOP.js');
+  
+  setConfig(server, username, password);
   // parse JSON string
-  jsonData = JSON.parse(fileData);
-  organizations = jsonData.orgs;
-  sla = jsonData.sla;
-  console.log(organizations);
+  parsed_data = JSON.parse(fileData);
 
   event.sender.send('import-status', 'importing...');
 
-  await Promise.all([importData1(), importData2(), importData()]).then(() => {
+  await Promise.all([importData()]).then(() => {
     console.log('Import successful!');
     event.sender.send('import-status', 'Import successful!');
   }).catch(error => {
