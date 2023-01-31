@@ -11,9 +11,8 @@ ipcRenderer.on('file', (event, data) => {
   const fileDataContainer = document.getElementById('file-data');
   // make #confirm-data visible
   document.getElementById('confirm-data').style.display = 'block';
-  fileDataContainer.innerHTML = JSON.stringify(data, null, 2);
+  fileDataContainer.innerHTML = "<code>"+JSON.stringify(data, null, 2)+"</code>"
 });
-
 ipcRenderer.on('redirect', (event, url) => {
   window.location.href = url;
 });

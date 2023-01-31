@@ -1,14 +1,55 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <link rel="stylesheet" href="css/style.css">
-    <title>YAML Reader</title>
-  </head>
-  <body>
-    <button class="btn btn-primary" id="upload-file">Select YAML File</button>
-    <div id="file-data"></div>
+
+<head>
+  <link rel="stylesheet" href="css/style.css">
+  <title>service-chain-wizard</title>
+</head>
+
+<body>
+  <div class="d-flex align-items-center flex-column w-100 mt-4">
+    <div class="text-center">
+      <h1>Service Chain Wizard</h1>
+      <p>Import a YAML file to create a service chain in iTop.</p>
+    </div>
+    <button class="btn btn-primary mb-4" id="upload-file">Select YAML File</button>
+    <!-- Example of how the YAML should look like-->
+    <div id="file-data" class="mb-4 mt-3 w-75 bg-secondary text-white">
+      <p class="text-center"><i>Example of how the YAML should look like</i></p>
+      <pre>
+        <code>
+          name: "Service Chain Name"
+          description: "Service Chain Description"
+          services:
+            - name: "Service Name"
+              description: "Service Description"
+              type: "Service Type"
+              subnets:
+                - name: "Subnet Name"
+                  description: "Subnet Description"
+                  cidr: "Subnet CIDR"
+                  gateway: "Subnet Gateway"
+                  dns: "Subnet DNS"
+                  dhcp: "Subnet DHCP"
+                  vlan: "Subnet VLAN"
+                  type: "Subnet Type"
+                  services:
+                    - name: "Service Name"
+                      description: "Service Description"
+                      type: "Service Type"
+                      subnets:
+                        - name: "Subnet Name"
+                          description: "Subnet Description"
+                          cidr: "Subnet CIDR"
+                          gateway: "Subnet Gateway"
+                          dns: "Subnet DNS"
+                          dhcp: "Subnet DHCP"
+                          vlan: "Subnet VLAN"
+                          type: "Subnet Type"
+        </code>
+      </pre>
+    </div>
     <div id="confirm-data" style="display: none;">
-      Is this correct?
       <form>
         <label for="server" class="form-label">Server:</label>
         <select id="server" name="server" class="form-select">
@@ -22,11 +63,13 @@
         <input type="password" id="password" name="password">
         <br>
       </form>
-      <button class="btn btn-primary" id="confirm" onclick="importToiTop()">Yes</button>
+      <button class="btn btn-primary" id="confirm" onclick="importToiTop()">Import</button>
     </div>
     <div id="import-status">
 
     </div>
-  </body>
-  <script src="service.js"></script>
+  </div>
+</body>
+<script src="service.js"></script>
+
 </html>

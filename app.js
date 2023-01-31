@@ -19,9 +19,10 @@ const createWindow = () => {
 
   // Load app
   mainWindow.loadFile(path.join(__dirname, "index.html"));
-
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
+  // Remove menu
+  mainWindow.setMenu(null)
 }
 
 app.whenReady().then(() => {
@@ -72,7 +73,7 @@ ipcMain.on('import-to-itop', async (event, server, username, password, fileData)
 
   event.sender.send('import-status', 'importing...');
 
-  await Promise.all([importData()]).then(() => {
+  await Promise.all([importData(parsed_data)]).then(() => {
     console.log('Import successful!');
     event.sender.send('import-status', 'Import successful!');
   }).catch(error => {
