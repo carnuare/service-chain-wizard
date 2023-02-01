@@ -13,6 +13,36 @@
       <p>Import a YAML file to create a service chain in iTop.</p>
     </div>
     <button class="btn btn-primary mb-4" id="upload-file">Select YAML File</button>
+    <!--Error msg-->
+    <div id="error-alert" class="alert alert-danger alert-dismissible fade show" style="display: none;" role="alert">
+      <a id="import-error"></a>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="hideAlert()"></button>
+    </div>
+    <!--Credentials & import btn-->
+    <div id="confirm-data" style="display: none;">
+      <form>
+        <div class="mb-1">
+          <label for="server" class="form-label">Server:</label>
+          <select id="server" name="server" class="form-select" aria-describedby="importHelp">
+            <option value="localhost">localhost</option>
+          </select>
+          <div id="importHelp" class="form-text">Please enter the credentials of the user granted with <b>REST Services User profile</b>.</div>
+        </div>
+        <div class="mb-1">
+          <label for="username" class="form-label">Username:</label>
+          <input type="text" class="form-control" id="username" name="username">
+        </div>
+        <div class="mb-1">
+          <label for="password" class="form-label">Password:</label>
+          <input type="password" class="form-control" id="password" name="password">
+        </div>
+      </form>
+      <div class="text-center">
+        <button class="btn btn-primary" id="confirm" onclick="importToiTop()">Import</button>
+      </div>
+    </div>
+    <div id="import-status" class="mb-2 mt-2">
+    </div>
     <!-- Example of how the YAML should look like-->
     <div id="file-data" class="mb-4 mt-3 w-75 bg-secondary text-white">
       <p class="text-center"><i>Example of how the YAML should look like</i></p>
@@ -49,27 +79,8 @@
         </code>
       </pre>
     </div>
-    <div id="confirm-data" style="display: none;">
-      <form>
-        <label for="server" class="form-label">Server:</label>
-        <select id="server" name="server" class="form-select">
-          <option value="localhost">localhost</option>
-        </select>
-        <br>
-        <label for="username" class="form-label">Username:</label>
-        <input type="text" id="username" name="username">
-        <br>
-        <label for="password" class="form-label">Password:</label>
-        <input type="password" id="password" name="password">
-        <br>
-      </form>
-      <button class="btn btn-primary" id="confirm" onclick="importToiTop()">Import</button>
-    </div>
-    <div id="import-status">
-
-    </div>
   </div>
 </body>
-<script src="service.js"></script>
-
+<script src="./src/js/index.js"></script>
+<script src="./src/js/renderer.js"></script>
 </html>
