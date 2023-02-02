@@ -13,36 +13,47 @@ const setConfig = (server, username, password) => {
     connectConfig.password = password;
 };
 
-const importData = (data) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            imoprtOrgs(data.orgs)
-            .then((id) => {
-                console.log('id: ' + id);
-                resolve('Import orgs success!');
-            }).catch((error) => {
-                reject('Error: '+ error);
-            });
-        } catch (error) {
-            reject('Error: '+ error);
-        }
-    });
+const importData = async (data) => {               
+    try {
+        await importOrgs(data);
+        await importServices(data);
+        return 'Import success!';
+    } catch (error) {
+        return 'Error: ' + error;
+    }
 };
 
-async function imoprtOrgs(orgs) {
-    return new Promise((resolve, reject) => {
-        // foreach org, call promise create
-        for (org in orgs) {
-            create('Organization', '{ "name": "'+orgs[org].name+'", "code": "'+orgs[org].code+'", "status": "'+(orgs[org].status??'active')+'" }')
+async function importOrgs(data) {
+    const promises = [];
+    for (const org in data.orgs) {
+        promises.push(create('Organization', '{ "name": "' + data.orgs[org].name + '", "code": "' + data.orgs[org].code + '", "status": "' + (data.orgs[org].status || 'active') + '" }')
+            .then((id) => {
+                console.log('id: ' + id);
+                data.orgs[org].id = id;
+            }));
+    }
+    await Promise.all(promises);
+    return data;
+}
+
+async function importServices(data) {
+    console.log("paso 2");
+    const promises = [];
+
+    for (const org in data.orgs) {
+        for (const service in data.orgs[org].services) {
+            promises.push(create('Service', '{ "name": "' + data.orgs[org].services[service].name + '", "org_id": "' + data.orgs[org].id + '", "description": "' + (data.orgs[org].services[service].description || '') + '" }')
                 .then((id) => {
                     console.log('id: ' + id);
-                    resolve('Import orgs success!');
-                }).catch((error) => {
-                    reject('Error: '+ error);
-                });
+                    data.orgs[org].services[service].id = id;
+                }));
         }
-    });
+    }
+
+    await Promise.all(promises);
+    return data;
 }
+
 
 async function create(importClass, fields) {
     return new Promise((resolve, reject) => {
