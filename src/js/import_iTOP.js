@@ -1,5 +1,7 @@
 const { net } = require('electron');
 
+const ITOP_REST_VERSION = '1.3';
+
 const connectConfig = {
     server: null,
     username: null,
@@ -20,7 +22,8 @@ const importData = async (data) => {
         await importSLTs(data);
         await importSLAs(data);
         await importLinkSLAtoSLT(data);
-        // await importContracts(data); // Customer Agreements 
+        await importCustomerContracts(data); // Customer Agreements 
+        await importLinkContractToService(data);
         return 'Import success!';
     } catch (error) {
         return 'Error: ' + error;
@@ -97,7 +100,7 @@ async function importSLAs(data) {
                     promises.push(create('SLA', '{ "name": "' + data.sla[sl].name + '", "description": "' + (data.sla[sl].description || '') + '", "org_id": "' + data.orgs[org].id + '" }')
                         .then((id) => {
                             console.log('id: ' + id);
-                            data.orgs[org].services[service].sla.id = id;
+                            data.orgs[org].services[service].idsla = id;
                         }).catch((error) => {
                             console.log(error);
                             Promise.reject(new Error('Error creating SLA: ' + data.sla[sl].name));
@@ -117,14 +120,14 @@ async function importLinkSLAtoSLT(data) {
         for(const org in data.orgs){
             for (const service in data.orgs[org].services) {
                 if (data.orgs[org].services[service].sla === data.sla[sl].name) {
-                    promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].sla.id + '", "slt_id": "' + data.sla[sl].slt.idTTO + '" }')
+                    promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].idsla + '", "slt_id": "' + data.sla[sl].slt.idTTO + '" }')
                         .then((id) => {
                             console.log('id: ' + id);
                         }).catch((error) => {
                             console.log(error);
                             Promise.reject(new Error('Error creating lnkSLAToSLT: ' + data.sla[sl].name));
                         }));
-                    promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].sla.id + '", "slt_id": "' + data.sla[sl].slt.idTTR + '" }')
+                    promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].idsla + '", "slt_id": "' + data.sla[sl].slt.idTTR + '" }')
                         .then((id) => {
                             console.log('id: ' + id);
                         }).catch((error) => {
@@ -139,13 +142,61 @@ async function importLinkSLAtoSLT(data) {
     return data;
 }
 
-// async function importContracts(data) {
-//     console.log("paso 5");
-//     const promises = [];
-//     for (const org in data.orgs){
-//         for (const service in data.orgs[org].services) {
-//             for (const customer in data.orgs[org].services[service].customers) {
+async function importCustomerContracts(data) {
+    console.log("paso 6");
+    const promises = [];
+    for (const org in data.orgs){
+        for (const service in data.orgs[org].services) {
+            for (const customer in data.orgs[org].services[service].customers) {
+                var name = data.orgs[org].services[service].name + ' : ' + data.orgs[org].services[service].customers[customer].name;
+                var description = data.orgs[org].services[service].customers[customer].description || '';
+                var provider_id = data.orgs[org].id;
+                // the org_id is the customer org
+                for (const org2 in data.orgs){
+                    if (data.orgs[org2].name === data.orgs[org].services[service].customers[customer].name) {
+                        var org_id = data.orgs[org2].id;
+                    }
+                }
+                if (!org_id) {
+                    Promise.reject(new Error('Error creating Contract: ' + name + ' - customer org not found'));
+                }
+                promises.push(create('CustomerContract', '{ "name": "' + name + '", "description": "' + description + '", "org_id": "' + org_id + '", "provider_id": "' + provider_id + '", "finalclass":"CustomerContract" }')
+                    .then((id) => {
+                        console.log('id: ' + id);
+                        data.orgs[org].services[service].customers[customer].idContract = id;
+                    }).catch((error) => {
+                        console.log(error);
+                        Promise.reject(new Error('Error creating Contract: ' + name));
+                    }));
+            }
+        }
+    }
+    await Promise.all(promises);
+    return data;
+}
 
+async function importLinkContractToService(data) {
+    console.log("paso 7");
+    const promises = [];
+    for (const org in data.orgs){
+        for (const service in data.orgs[org].services) {
+            for (const customer in data.orgs[org].services[service].customers) {
+                var customercontract_id = data.orgs[org].services[service].customers[customer].idContract;
+                var service_id = data.orgs[org].services[service].id;
+                var sla_id = data.orgs[org].services[service].idsla;
+                promises.push(create('lnkCustomerContractToService', '{ "customercontract_id": "' + customercontract_id + '", "service_id": "' + service_id + '", "sla_id": "' + sla_id + '" }')
+                    .then((id) => {
+                        console.log('id: ' + id);
+                    }).catch((error) => {
+                        console.log(error);
+                        Promise.reject(new Error('Error creating lnkCustomerContractToService: ' + customercontract_id));
+                    }));
+            }
+        }
+    }
+    await Promise.all(promises);
+    return data;
+}
 
 async function create(importClass, fields) {
     return new Promise((resolve, reject) => {
@@ -155,7 +206,7 @@ async function create(importClass, fields) {
                 protocol: 'http:',
                 hostname: connectConfig.server,
                 port: 80,
-                path: encodeURI('/itop/web/webservices/rest.php?version=1.3&json_data={"operation": "core/create", "comment": "import wizard", "class": "'+importClass+'", "output_fields": "id", "fields": '+fields+'}'),
+                path: encodeURI('/itop/web/webservices/rest.php?version='+ ITOP_REST_VERSION +'&json_data={"operation": "core/create", "comment": "import wizard", "class": "'+importClass+'", "output_fields": "id", "fields": '+fields+'}'),
             });
             request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
             request.setHeader('Authorization', 'Basic ' + Buffer.from(connectConfig.username + ":" + connectConfig.password).toString("base64"))
