@@ -33,7 +33,10 @@ const importData = async (data) => {
 async function importOrgs(data) {
     const promises = [];
     for (const org in data.orgs) {
-        promises.push(create('Organization', '{ "name": "' + data.orgs[org].name + '", "code": "' + data.orgs[org].code + '", "status": "' + (data.orgs[org].status || 'active') + '" }')
+        var name = data.orgs[org].name;
+        var code = data.orgs[org].code;
+        var status = data.orgs[org].status || 'active';
+        promises.push(create('Organization', '{ "name": "' + name+ '", "code": "' + code + '", "status": "' + status + '" }')
             .then((id) => {
                 console.log('id: ' + id);
                 data.orgs[org].id = id;
@@ -51,7 +54,11 @@ async function importServices(data) {
     const promises = [];
     for (const org in data.orgs) {
         for (const service in data.orgs[org].services) {
-            promises.push(create('Service', '{ "name": "' + data.orgs[org].services[service].name + '", "org_id": "' + data.orgs[org].id + '", "description": "' + (data.orgs[org].services[service].description || '') + '" }')
+            var name = data.orgs[org].services[service].name;
+            var org_id = data.orgs[org].id;
+            var description = data.orgs[org].services[service].description || '';
+            var status = data.orgs[org].services[service].status || 'production';
+            promises.push(create('Service', '{ "name": "' + name + '", "org_id": "' + org_id + '", "description": "' + description + '", "status": "' + status + '" }')
                 .then((id) => {
                     console.log('id: ' + id);
                     data.orgs[org].services[service].id = id;

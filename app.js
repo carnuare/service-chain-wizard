@@ -2,7 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain, net } = require('electron');
 const path = require('path')
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { setFileData, getFileData } = require('./src/js/model/ImportModel.js');
+const { setFileData, getFileData, getValidationErrors } = require('./src/js/model/ImportModel.js');
 
 const createWindow = () => {
   // Create the browser window.
@@ -20,9 +20,10 @@ const createWindow = () => {
   // Load app
   mainWindow.loadFile(path.join(__dirname, "index.html"));
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
   // Remove menu
   mainWindow.setMenu(null)
+  mainWindow.setResizable(false);
 }
 
 app.whenReady().then(() => {
@@ -57,6 +58,12 @@ ipcMain.on('file-request', async (event) => {
         const data = yaml.load(fileContents);
         // load into model
         setFileData(data);
+        // check that the structure of the data is correct
+        errors = getValidationErrors(data);
+        if (errors.length > 0) {
+          event.sender.send('import-error', 'Invalid data structure: ' + errors.toString());
+          return;
+        }
         event.reply('file', data);
       } catch (error) {
         console.log(error)
