@@ -79,7 +79,7 @@ ipcMain.on('file-request', async (event) => {
 
 ipcMain.on('import-to-itop', async (event, server, username, password) => {
 
-  const { importData, setConfig } = require('./src/js/import_iTOP.js');
+  const { importData, setConfig, checkCredentials } = require('./src/js/import_iTOP.js');
 
   data = getFileData();
   if (data == null) {
@@ -88,13 +88,21 @@ ipcMain.on('import-to-itop', async (event, server, username, password) => {
   }
   
   setConfig(server, username, password);
-  
-  event.sender.send('import-status', 'importing...');
 
-  await Promise.all([importData(data)]).then(() => {
-    console.log('Import successful!');
-    event.sender.send('import-status', 'Import successful!');
-  }).catch(error => {
-    event.sender.send('import-status', `Import failed: ${error}`);
-  });
+  // check that the credentials are correct
+  try {
+    await checkCredentials();
+
+    event.sender.send('import-status', 'importing...');
+
+    await Promise.all([importData(data)]).then(() => {
+      console.log('Import successful!');
+      event.sender.send('import-status', 'Import successful!');
+    }).catch(error => {
+      event.sender.send('import-status', `Import failed: ${error}`);
+    });
+  } catch (error) {
+    event.sender.send('import-error', error);
+    return;
+  }
 });

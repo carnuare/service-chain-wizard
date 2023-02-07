@@ -245,5 +245,41 @@ async function create(importClass, fields) {
     });
 }
 
+const checkCredentials = async () => {
+    return new Promise((resolve, reject) => {
+        const request = net.request({
+            method: 'POST',
+            protocol: 'http:',
+            hostname: connectConfig.server,
+            port: 80,
+            path: encodeURI('/itop/web/webservices/rest.php?version=' + ITOP_REST_VERSION + '&json_data={"operation": "core/check_credentials", "user": "' + connectConfig.username + '", "password": "' + connectConfig.password + '"}')
+        });
+        request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        request.setHeader('Authorization', 'Basic ' + Buffer.from(connectConfig.username + ":" + connectConfig.password).toString("base64"))
+        request.on('response', (response) => {
+            var body = "";
+            response.on('data', (chunk) => {
+                console.log(`BODY: ${chunk}`)
+                body += chunk;
+            });
+            response.on('end', () => {
+                try {
+                    var json = JSON.parse(body);
+                    if (json.code == 0) {
+                        resolve('Credentials OK');
+                    } else {
+                        reject(new Error('Invalid credentials'));
+                    }
+                } catch (error) {
+                    reject(new Error('Invalid credentials'));
+                }
+            });
+        });
+        request.on('error', (error) => {
+            reject(new Error('Invalid credentials'));
+        });
+        request.end();
+    });
+};
 
-module.exports = { importData, setConfig };
+module.exports = { importData, setConfig, checkCredentials };
