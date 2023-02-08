@@ -77,7 +77,7 @@ ipcMain.on('file-request', async (event) => {
   });
 });
 
-ipcMain.on('import-to-itop', async (event, server, username, password) => {
+ipcMain.on('import-to-itop', async (event, server, port, api_path, username, password) => {
 
   const { importData, setConfig, checkCredentials } = require('./src/js/import_iTOP.js');
 
@@ -87,7 +87,7 @@ ipcMain.on('import-to-itop', async (event, server, username, password) => {
     return;
   }
   
-  setConfig(server, username, password);
+  setConfig(server, port, api_path, username, password);
 
   // check that the credentials are correct
   try {

@@ -18,28 +18,39 @@
       <a id="import-error"></a>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="hideAlert()"></button>
     </div>
-    <!--Credentials & import btn-->
+    <!--Form with credentials -->
     <div id="confirm-data" style="display: none;">
-      <form>
+      <form onsubmit="importToiTop(); return false;">
+        <div class="row mb-1">
+          <div class="col-9 mb-1">
+            <label for="server" class="form-label">Server:</label>
+            <select id="server" name="server" class="form-select">
+              <option value="localhost">localhost</option>
+            </select>
+          </div>
+          <div class="col-3 mb-1">
+            <label for="port" class="form-label">Port:</label>
+            <input type="text" class="form-control" id="port" name="port" value="80">
+          </div>
+        </div>
         <div class="mb-1">
-          <label for="server" class="form-label">Server:</label>
-          <select id="server" name="server" class="form-select" aria-describedby="importHelp">
-            <option value="localhost">localhost</option>
-          </select>
-          <div id="importHelp" class="form-text">Please enter the credentials of the user granted with <b>REST Services User profile</b>.</div>
+          <label for="api" class="form-label">API:</label>
+          <input type="text" class="form-control" id="api_path" name="api" value="/itop/web/webservices/rest.php" aria-describedby="apiHelp">
+          <div id="apiHelp" class="form-text">Do not change the API path of your iTOP instance if you're unsure.</div>
         </div>
         <div class="mb-1">
           <label for="username" class="form-label">Username:</label>
-          <input type="text" class="form-control" id="username" name="username">
+          <input type="text" class="form-control" id="username" name="username" required>
         </div>
         <div class="mb-1">
           <label for="password" class="form-label">Password:</label>
-          <input type="password" class="form-control" id="password" name="password">
+          <input type="password" class="form-control" id="password" name="password" aria-describedby="importHelp" required>
+          <div id="importHelp" class="form-text">Please enter the credentials of the user granted with <b>REST Services User profile</b>.</div>
+        </div>
+        <div class="text-center">
+          <button class="btn btn-success" type="submit">Import</button>
         </div>
       </form>
-      <div class="text-center">
-        <button class="btn btn-primary" id="confirm" onclick="importToiTop()">Import</button>
-      </div>
     </div>
     <div id="import-status" class="mb-2 mt-2">
     </div>
