@@ -106,3 +106,28 @@ ipcMain.on('import-to-itop', async (event, server, port, api_path, username, pas
     return;
   }
 });
+
+ipcMain.on('export-from-itop', async (event, server, port, api_path, username, password) => {
+
+  const { exportData, setConfig, checkCredentials } = require('./src/js/export_iTOP.js');
+
+  setConfig(server, port, api_path, username, password);
+
+  // check that the credentials are correct
+  try {
+    await checkCredentials();
+
+    event.sender.send('export-status', 'exporting...');
+
+    await Promise.all([exportData()]).then((data) => {
+      console.log('Export successful!');
+      event.sender.send('export-status', 'Export successful!');
+      event.sender.send('export-data', data);
+    }).catch(error => {
+      event.sender.send('export-status', `Export failed: ${error}`);
+    });
+  } catch (error) {
+    event.sender.send('export-error', error);
+    return;
+  }
+});

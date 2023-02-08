@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="../../css/style.css">
+  <title>service-chain-wizard</title>
+</head>
+
+<body>
+  <div class="d-flex align-items-center flex-column w-100 mt-4">
+    <div class="text-center">
+      <h1><a href="../../index.html" style="text-decoration: none !important;">Service Chain Wizard</a></h1>
+      <p>Import a YAML file to create a service chain in iTop.</p>
+    </div>
+    <button class="btn btn-primary mb-4" id="upload-file">Select YAML File</button>
+    <!--Error msg-->
+    <div id="error-alert" class="alert alert-danger alert-dismissible fade show" style="display: none;" role="alert">
+      <a id="import-error"></a>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="hideAlert()"></button>
+    </div>
+    <!--Form with credentials -->
+    <div id="confirm-data" style="display: none;">
+      <form onsubmit="importToiTop(); return false;">
+        <div class="row mb-1">
+          <div class="col-9 mb-1">
+            <label for="server" class="form-label">Server:</label>
+            <select id="server" name="server" class="form-select">
+              <option value="localhost">localhost</option>
+            </select>
+          </div>
+          <div class="col-3 mb-1">
+            <label for="port" class="form-label">Port:</label>
+            <input type="text" class="form-control" id="port" name="port" value="80">
+          </div>
+        </div>
+        <div class="mb-1">
+          <label for="api" class="form-label">API:</label>
+          <input type="text" class="form-control" id="api_path" name="api" value="/itop/web/webservices/rest.php" aria-describedby="apiHelp">
+          <div id="apiHelp" class="form-text">Do not change the API path of your iTOP instance if you're unsure.</div>
+        </div>
+        <div class="mb-1">
+          <label for="username" class="form-label">Username:</label>
+          <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="mb-1">
+          <label for="password" class="form-label">Password:</label>
+          <input type="password" class="form-control" id="password" name="password" aria-describedby="importHelp" required>
+          <div id="importHelp" class="form-text">Please enter the credentials of the user granted with <b>REST Services User profile</b>.</div>
+        </div>
+        <div class="text-center">
+          <button class="btn btn-success" type="submit">Import</button>
+        </div>
+      </form>
+    </div>
+    <div id="import-status" class="mb-2 mt-2">
+    </div>
+    <!-- Example of how the YAML should look like-->
+    <div id="file-data" class="mb-4 mt-3 w-75 bg-secondary text-white">
+      <p class="text-center"><i>Example of how the YAML should look like</i></p>
+      <pre>
+        <code class="language-yaml">
+    orgs:
+      - name: Notaria S.L.
+        code: NOTA
+      - name: Panaderia S.L.
+        code: PAN
+      - name: Pepeweb Support S.A.
+        code: PEPE
+        status: active # if empty, it is active by default
+        services:
+        - name: New web functionality
+          status: production # enum: implementation, obsolete, production
+          sla: NewWebFunctionalitySLA
+          description: Add a functionality to a web
+          customers:
+                - name: Notaria S.L.
+                - name: Panaderia S.L.
+        - name: Troubleshooting
+          sla: BasicTroubleshootingSLA
+          customers:
+          - name: Notaria S.L.
+
+      sla:
+        - name: NewWebFunctionalitySLA
+          slt:
+            maxTTR: 48
+            maxTTO: 12
+        - name: PremiumTroubleshootingSLA
+          slt:
+            maxTTR: 8
+            maxTTO: 4
+        - name: BasicTroubleshootingSLA
+          slt:
+            maxTTR: 24
+            maxTTO: 12
+        </code>
+      </pre>
+    </div>
+  </div>
+</body>
+<script src="../js/index.js"></script>
+<script src="../js/renderer.js"></script>
+</html>
