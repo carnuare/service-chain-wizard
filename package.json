@@ -6,6 +6,7 @@
   "author": "Carlos N",
   "dependencies": {
     "bootstrap": "^5.2.0",
+    "electron-dl": "^3.5.0",
     "electron-packager": "17.1.1",
     "jquery": "^3.6.3",
     "js-yaml": "^4.1.0"

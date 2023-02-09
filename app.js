@@ -20,7 +20,7 @@ const createWindow = () => {
   // Load app
   mainWindow.loadFile(path.join(__dirname, "index.html"));
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
   // Remove menu
   mainWindow.setMenu(null)
   mainWindow.setResizable(false);
@@ -79,7 +79,8 @@ ipcMain.on('file-request', async (event) => {
 
 ipcMain.on('import-to-itop', async (event, server, port, api_path, username, password) => {
 
-  const { importData, setConfig, checkCredentials } = require('./src/js/import_iTOP.js');
+  const { importData } = require('./src/js/import_iTOP.js');
+  const { setConfig, checkCredentials } = require('./src/js/config/config.js');
 
   data = getFileData();
   if (data == null) {
@@ -109,25 +110,51 @@ ipcMain.on('import-to-itop', async (event, server, port, api_path, username, pas
 
 ipcMain.on('export-from-itop', async (event, server, port, api_path, username, password) => {
 
-  const { exportData, setConfig, checkCredentials } = require('./src/js/export_iTOP.js');
-
+  const { exportData } = require('./src/js/export_iTOP.js');
+  const { setConfig, checkCredentials } = require('./src/js/config/config.js');
+  
   setConfig(server, port, api_path, username, password);
-
+  
   // check that the credentials are correct
   try {
     await checkCredentials();
 
     event.sender.send('export-status', 'exporting...');
 
-    await Promise.all([exportData()]).then((data) => {
+    await exportData().then((data) => {
       console.log('Export successful!');
-      event.sender.send('export-status', 'Export successful!');
-      event.sender.send('export-data', data);
+      // turn json into YAML
+      var yamlFile = yaml.dump(data);
+      event.sender.send('download', {
+        payload: {
+          fileURL: 'data:text/plain;charset=utf-8,' + encodeURIComponent(yamlFile),
+          fileName: 'export.yaml'
+        }
+      });
     }).catch(error => {
-      event.sender.send('export-status', `Export failed: ${error}`);
+      console.log(error);
+      event.sender.send('export-status', `Export failed`);
     });
   } catch (error) {
-    event.sender.send('export-error', error);
+    event.sender.send('import-error', error);
     return;
+  }
+});
+
+ipcMain.on('download', async (event, {payload}) => {
+  console.log('downloading...');
+  const { fileURL, fileName } = payload;
+  const { download } = require('electron-dl');
+  const win = BrowserWindow.getFocusedWindow();
+  try {
+    const dl = await download(win, fileURL, {
+      filename: fileName,
+      saveAs: true
+    });
+    console.log(dl.getSavePath());
+    event.sender.send('export-status', 'Export successful!');
+  }catch (e) {
+    console.log(e);
+    // event.sender.send('download-error', e);
   }
 });

@@ -1,11 +1,12 @@
-const {ipcRenderer} = require('electron')
-
 //upon clicking upload file, request the file from the main process
 var uploadFile = document.getElementById('upload-file');
 
-uploadFile.addEventListener('click', () => {
-  ipcRenderer.send('file-request');
-});
+// if uploadFile is not null, add an event listener to it
+if (uploadFile) {
+  uploadFile.addEventListener('click', () => {
+    ipcRenderer.send('file-request');
+  });
+}
 
 ipcRenderer.on('file', (event, data) => {
   const fileDataContainer = document.getElementById('file-data');
@@ -16,12 +17,20 @@ ipcRenderer.on('file', (event, data) => {
   document.getElementById('confirm-data').style.display = 'block';
 });
 
+ipcRenderer.on('download', (event, data) => {
+  ipcRenderer.send('download', data);
+});
+
 ipcRenderer.on('redirect', (event, url) => {
   window.location.href = url;
 });
 
 ipcRenderer.on('import-status', (event, status) => {
   document.getElementById('import-status').innerHTML = status;
+});
+
+ipcRenderer.on('export-status', (event, status) => {
+  document.getElementById('export-status').innerHTML = status;
 });
 
 ipcRenderer.on('import-error', (event, error) => {
