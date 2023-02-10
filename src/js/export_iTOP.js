@@ -7,11 +7,9 @@ const exportData = async () => {
         await exportOrgs(exportJSON);
         await exportServices(exportJSON);
         await exportSLAs(exportJSON);
-        // await exportSLTs(data);
-        // await exportSLAs(data);
-        // await exportLinkSLAtoSLT(data);
-        // await exportCustomerContracts(data); // Customer Agreements 
-        // await exportLinkContractToService(data);
+        await exportSLTs(exportJSON);
+        await exportCustomers(exportJSON);
+        await cleanIds(exportJSON);
         return exportJSON;
     } catch (error) {
         throw new Error(error);
@@ -103,138 +101,148 @@ async function exportSLAs(json) {
     );
 }
 
-// async function importSLTs(data) {
-//     console.log("paso 3");
-//     const promises = [];
-//     for (const sl in data.sla) {
-//         promises.push(create('SLT', '{ "name": "maxTTO", "priority": "1", "request_type": "incident", "metric": "tto", "value": "' + data.sla[sl].slt.maxTTO + '", "unit": "'+ (data.sla[sl].slt.unit || 'minutes') + '" }')
-//             .then((id) => {
-//                 console.log('id: ' + id);
-//                 data.sla[sl].slt.idTTO = id;
-//             }).catch((error) => {
-//                 console.log(error);
-//                 Promise.reject(new Error('Error creating SLT: ' + data.sla[sl].name));
-//             }));
-//         promises.push(create('SLT', '{ "name": "maxTTR", "priority": "1", "request_type": "incident", "metric": "ttr", "value": "' + data.sla[sl].slt.maxTTR + '", "unit": "'+ (data.sla[sl].slt.unit || 'minutes') + '" }')
-//             .then((id) => {
-//                 console.log('id: ' + id);
-//                 data.sla[sl].slt.idTTR = id;
-//             }).catch((error) => {
-//                 console.log(error);
-//                 Promise.reject(new Error('Error creating SLT: ' + data.sla[sl].name));
-//             }));
-//         }
-//     await Promise.all(promises);
-//     return data;
-// }
+async function exportSLTs(json) {
+    console.log("paso 4");
+    return new Promise((resolve, reject) => {
+        getClass('SLT', 'id, metric, value, unit')
+            .then((data) => {
+                console.log('data: ' + data);
+                slts = [];
+                for (let key in data.objects) {
+                    const slt = data.objects[key];
+                    slts.push({
+                        "id": slt.fields.id,
+                        "metric": slt.fields.metric,
+                        "value": slt.fields.value,
+                        "unit": slt.fields.unit
+                    });
+                }
+                // then get SLA SLT links
+                getClass('lnkSLAToSLT', 'sla_id, slt_id')
+                    .then((data) => {
+                        console.log('data: ' + data);
+                        // for each SLA, if sla_id == json.sla[sla].id, add slt_id to json.sla[sla].slt
+                        for (let key in data.objects) {
+                            const link = data.objects[key];
+                            for (let sla in json.sla) {
+                                if (link.fields.sla_id == json.sla[sla].id) {
+                                    if (!json.sla[sla].slt) {
+                                        json.sla[sla].slt = [];
+                                    }
+                                    for (let slt in slts) {
+                                        if (link.fields.slt_id == slts[slt].id) {
+                                            var sltMetric = slts[slt].metric == 'tto' ? 'maxTTO' : 'maxTTR';
+                                            json.sla[sla].slt.push({
+                                                [sltMetric]: slts[slt].value,
+                                                "unit": slts[slt].unit
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        resolve(json);
+                    }).catch((error) => {
+                        console.log(error);
+                        reject(new Error('Error getting SLT links'));
+                    }
+                    );
+            }).catch((error) => {
+                console.log(error);
+                reject(new Error('Error getting SLTs'));
+            }
+            );
+    }
+    );
+}
 
-// async function importSLAs(data) {
-//     console.log("paso 4");
-//     const promises = [];
-//     for (const sl in data.sla) {
-//         for(const org in data.orgs){
-//             for (const service in data.orgs[org].services) {
-//                 if (data.orgs[org].services[service].sla === data.sla[sl].name) {
-//                     promises.push(create('SLA', '{ "name": "' + data.sla[sl].name + '", "description": "' + (data.sla[sl].description || '') + '", "org_id": "' + data.orgs[org].id + '" }')
-//                         .then((id) => {
-//                             console.log('id: ' + id);
-//                             data.orgs[org].services[service].idsla = id;
-//                         }).catch((error) => {
-//                             console.log(error);
-//                             Promise.reject(new Error('Error creating SLA: ' + data.sla[sl].name));
-//                         }));
-//                 }
-//             }
-//         }
-//     }
-//     await Promise.all(promises);
-//     return data;
-// }
+async function exportCustomers(json) {
+    console.log("paso 5");
+    return new Promise((resolve, reject) => {
+        getClass('CustomerContract', 'id, org_id, provider_id')
+            .then((data) => {
+                console.log('data: ' + data);
+                var contracts = [];
+                for (let key in data.objects) {
+                    const contract = data.objects[key];
+                    contracts.push({
+                        "id": contract.fields.id,
+                        "org_id": contract.fields.org_id,
+                        "provider_id": contract.fields.provider_id
+                    });
+                }
+                // get links between services and contracts
+                getClass('lnkCustomerContractToService', 'customercontract_id, service_id, sla_id')
+                    .then((data) => {
+                        console.log('data: ' + data);
+                        // for each service in org, if service_id == json.orgs[org].services[service].id, add the name of org_id from customercontract_id to json.orgs[org].services[service].customers
+                        // and add the sla_id name to json.orgs[org].services[service].sla
+                        for (let key in data.objects) {
+                            const link = data.objects[key];
+                            for (let org in json.orgs) {
+                                for (let service in json.orgs[org].services) {
+                                    if (link.fields.service_id == json.orgs[org].services[service].id) {
+                                        if (!json.orgs[org].services[service].customers) {
+                                            json.orgs[org].services[service].customers = [];
+                                        }
+                                        for (let contract in contracts) {
+                                            if (link.fields.customercontract_id == contracts[contract].id) {
+                                                for (let org2 in json.orgs) {
+                                                    if (contracts[contract].org_id == json.orgs[org2].id) {
+                                                        json.orgs[org].services[service].customers.push({
+                                                            "name": json.orgs[org2].name,
+                                                            "id": json.orgs[org2].id
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        // if (!json.orgs[org].services[service].sla) {
+                                        //     json.orgs[org].services[service].sla = [];
+                                        // }
+                                        for (let sla in json.sla) {
+                                            if (link.fields.sla_id == json.sla[sla].id) {
+                                                json.orgs[org].services[service].sla = json.sla[sla].name
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        resolve(json);
+                    }).catch((error) => {
+                        console.log(error);
+                        reject(new Error('Error getting customer contract links'));
+                    }
+                    );
+            }).catch((error) => {
+                console.log(error);
+                reject(new Error('Error getting customer contracts'));
+            }
+            );
+    }
+    );
+}
 
-// async function importLinkSLAtoSLT(data) {
-//     console.log("paso 5");
-//     const promises = [];
-//     for (const sl in data.sla) {
-//         for(const org in data.orgs){
-//             for (const service in data.orgs[org].services) {
-//                 if (data.orgs[org].services[service].sla === data.sla[sl].name) {
-//                     promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].idsla + '", "slt_id": "' + data.sla[sl].slt.idTTO + '" }')
-//                         .then((id) => {
-//                             console.log('id: ' + id);
-//                         }).catch((error) => {
-//                             console.log(error);
-//                             Promise.reject(new Error('Error creating lnkSLAToSLT: ' + data.sla[sl].name));
-//                         }));
-//                     promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].idsla + '", "slt_id": "' + data.sla[sl].slt.idTTR + '" }')
-//                         .then((id) => {
-//                             console.log('id: ' + id);
-//                         }).catch((error) => {
-//                             console.log(error);
-//                             Promise.reject(new Error('Error creating lnkSLAToSLT: ' + data.sla[sl].name));
-//                         }));
-//                 }
-//             }
-//         }
-//     }
-//     await Promise.all(promises);
-//     return data;
-// }
-
-// async function importCustomerContracts(data) {
-//     console.log("paso 6");
-//     const promises = [];
-//     for (const org in data.orgs){
-//         for (const service in data.orgs[org].services) {
-//             for (const customer in data.orgs[org].services[service].customers) {
-//                 var name = data.orgs[org].services[service].name + ' : ' + data.orgs[org].services[service].customers[customer].name;
-//                 var description = data.orgs[org].services[service].customers[customer].description || '';
-//                 var provider_id = data.orgs[org].id;
-//                 // the org_id is the customer org
-//                 for (const org2 in data.orgs){
-//                     if (data.orgs[org2].name === data.orgs[org].services[service].customers[customer].name) {
-//                         var org_id = data.orgs[org2].id;
-//                     }
-//                 }
-//                 if (!org_id) {
-//                     Promise.reject(new Error('Error creating Contract: ' + name + ' - customer org not found'));
-//                 }
-//                 promises.push(create('CustomerContract', '{ "name": "' + name + '", "description": "' + description + '", "org_id": "' + org_id + '", "provider_id": "' + provider_id + '", "finalclass":"CustomerContract" }')
-//                     .then((id) => {
-//                         console.log('id: ' + id);
-//                         data.orgs[org].services[service].customers[customer].idContract = id;
-//                     }).catch((error) => {
-//                         console.log(error);
-//                         Promise.reject(new Error('Error creating Contract: ' + name));
-//                     }));
-//             }
-//         }
-//     }
-//     await Promise.all(promises);
-//     return data;
-// }
-
-// async function importLinkContractToService(data) {
-//     console.log("paso 7");
-//     const promises = [];
-//     for (const org in data.orgs){
-//         for (const service in data.orgs[org].services) {
-//             for (const customer in data.orgs[org].services[service].customers) {
-//                 var customercontract_id = data.orgs[org].services[service].customers[customer].idContract;
-//                 var service_id = data.orgs[org].services[service].id;
-//                 var sla_id = data.orgs[org].services[service].idsla;
-//                 promises.push(create('lnkCustomerContractToService', '{ "customercontract_id": "' + customercontract_id + '", "service_id": "' + service_id + '", "sla_id": "' + sla_id + '" }')
-//                     .then((id) => {
-//                         console.log('id: ' + id);
-//                     }).catch((error) => {
-//                         console.log(error);
-//                         Promise.reject(new Error('Error creating lnkCustomerContractToService: ' + customercontract_id));
-//                     }));
-//             }
-//         }
-//     }
-//     await Promise.all(promises);
-//     return data;
-// }
+async function cleanIds(json) {
+    console.log("paso 6");
+    return new Promise((resolve, reject) => {
+        for (let org in json.orgs) {
+            delete json.orgs[org].id;
+            for (let service in json.orgs[org].services) {
+                delete json.orgs[org].services[service].id;
+                for (let customer in json.orgs[org].services[service].customers) {
+                    delete json.orgs[org].services[service].customers[customer].id;
+                }
+            }
+        }
+        for (let sla in json.sla) {
+            delete json.sla[sla].id;
+        }
+        resolve(json);
+    }
+    );
+}
 
 async function getClass(exportClass, output_fields) {
     return new Promise((resolve, reject) => {
