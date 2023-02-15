@@ -62,18 +62,26 @@ async function importSLTs(data) {
     console.log("paso 3");
     const promises = [];
     for (const sl in data.sla) {
-        promises.push(create('SLT', '{ "name": "maxTTO", "priority": "1", "request_type": "incident", "metric": "tto", "value": "' + data.sla[sl].slt.maxTTO + '", "unit": "'+ (data.sla[sl].slt.unit || 'minutes') + '" }')
+        var tto_priority = data.sla[sl].guarantees.tto["x-itop-priority"] || '1';
+        var tto_request_type = data.sla[sl].guarantees.tto["x-itop-request-type"] || 'incident';
+        var tto_value = data.sla[sl].guarantees.tto.max.value;
+        var tto_unit = data.sla[sl].guarantees.tto.max.unit || 'minutes';
+        promises.push(create('SLT', '{ "name": "maxTTO", "priority": "' + tto_priority + '", "request_type": "' + tto_request_type +'", "metric": "tto", "value": "' + tto_value + '", "unit": "'+ tto_unit + '" }')
             .then((id) => {
                 console.log('id: ' + id);
-                data.sla[sl].slt.idTTO = id;
+                data.sla[sl].guarantees.tto.id = id;
             }).catch((error) => {
                 console.log(error);
                 Promise.reject(new Error('Error creating SLT: ' + data.sla[sl].name));
             }));
-        promises.push(create('SLT', '{ "name": "maxTTR", "priority": "1", "request_type": "incident", "metric": "ttr", "value": "' + data.sla[sl].slt.maxTTR + '", "unit": "'+ (data.sla[sl].slt.unit || 'minutes') + '" }')
+        var ttr_priority = data.sla[sl].guarantees.ttr["x-itop-priority"] || '1';
+        var ttr_request_type = data.sla[sl].guarantees.ttr["x-itop-request-type"] || 'incident';
+        var ttr_value = data.sla[sl].guarantees.ttr.max.value;
+        var ttr_unit = data.sla[sl].guarantees.ttr.max.unit || 'minutes';
+        promises.push(create('SLT', '{ "name": "maxTTR", "priority": "' + ttr_priority + '", "request_type": "' + ttr_request_type + '", "metric": "ttr", "value": "' + ttr_value + '", "unit": "'+ ttr_unit + '" }')
             .then((id) => {
                 console.log('id: ' + id);
-                data.sla[sl].slt.idTTR = id;
+                data.sla[sl].guarantees.ttr.id = id;
             }).catch((error) => {
                 console.log(error);
                 Promise.reject(new Error('Error creating SLT: ' + data.sla[sl].name));
@@ -83,52 +91,78 @@ async function importSLTs(data) {
     return data;
 }
 
+// async function importSLAs(data) {
+//     console.log("paso 4");
+//     const promises = [];
+//     for (const sl in data.sla) {
+//         for (const org in data.orgs){
+//             for (const service in data.orgs[org].services) {
+//                 for (const customer in data.orgs[org].services[service].customers) {
+//                     // if SLA does not exist, create it
+//                     if (data.orgs[org].services[service].customers[customer].sla === data.sla[sl].name && data.sla[sl].id === undefined) {
+//                         promises.push(create('SLA', '{ "name": "' + data.sla[sl].name + '", "description": "' + (data.sla[sl].description || '') + '", "org_id": "' + data.orgs[org].id + '" }')
+//                             .then((id) => {
+//                                 console.log('id: ' + id);
+//                                 data.sla[sl].id = id;
+//                             }).catch((error) => {
+//                                 console.log(error);
+//                                 Promise.reject(new Error('Error creating SLA: ' + data.sla[sl].name));
+//                             }));
+//                     }
+
+//                 }
+//             }
+//         }
+//     }
+//     await Promise.all(promises);
+//     return data;
+// }
+
 async function importSLAs(data) {
     console.log("paso 4");
-    const promises = [];
     for (const sl in data.sla) {
-        for(const org in data.orgs){
+        for (const org in data.orgs){
             for (const service in data.orgs[org].services) {
-                if (data.orgs[org].services[service].sla === data.sla[sl].name) {
-                    promises.push(create('SLA', '{ "name": "' + data.sla[sl].name + '", "description": "' + (data.sla[sl].description || '') + '", "org_id": "' + data.orgs[org].id + '" }')
-                        .then((id) => {
+                for (const customer in data.orgs[org].services[service].customers) {
+                    // if SLA does not exist, create it
+                    if (data.orgs[org].services[service].customers[customer].sla === data.sla[sl].name && data.sla[sl].id === undefined) {
+                        try {
+                            const id = await create('SLA', '{ "name": "' + data.sla[sl].name + '", "description": "' + (data.sla[sl].description || '') + '", "org_id": "' + data.orgs[org].id + '" }');
                             console.log('id: ' + id);
-                            data.orgs[org].services[service].idsla = id;
-                        }).catch((error) => {
+                            data.sla[sl].id = id;
+                        } catch (error) {
                             console.log(error);
-                            Promise.reject(new Error('Error creating SLA: ' + data.sla[sl].name));
-                        }));
+                            throw new Error('Error creating SLA: ' + data.sla[sl].name);
+                        }
+                    }
                 }
             }
         }
     }
-    await Promise.all(promises);
     return data;
 }
+
 
 async function importLinkSLAtoSLT(data) {
     console.log("paso 5");
     const promises = [];
     for (const sl in data.sla) {
-        for(const org in data.orgs){
-            for (const service in data.orgs[org].services) {
-                if (data.orgs[org].services[service].sla === data.sla[sl].name) {
-                    promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].idsla + '", "slt_id": "' + data.sla[sl].slt.idTTO + '" }')
-                        .then((id) => {
-                            console.log('id: ' + id);
-                        }).catch((error) => {
-                            console.log(error);
-                            Promise.reject(new Error('Error creating lnkSLAToSLT: ' + data.sla[sl].name));
-                        }));
-                    promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.orgs[org].services[service].idsla + '", "slt_id": "' + data.sla[sl].slt.idTTR + '" }')
-                        .then((id) => {
-                            console.log('id: ' + id);
-                        }).catch((error) => {
-                            console.log(error);
-                            Promise.reject(new Error('Error creating lnkSLAToSLT: ' + data.sla[sl].name));
-                        }));
-                }
-            }
+        // create link from data.sla[sl].id to data.sla[sl].guarantees.tto.id and ttr.id
+        if (data.sla[sl].id !== undefined) {
+            promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.sla[sl].id + '", "slt_id": "' + data.sla[sl].guarantees.tto.id + '" }')
+                .then((id) => {
+                    console.log('id: ' + id);
+                }).catch((error) => {
+                    console.log(error);
+                    Promise.reject(new Error('Error creating lnkSLAToSLT: ' + data.sla[sl].name));
+                }));
+            promises.push(create('lnkSLAToSLT', '{ "sla_id": "' + data.sla[sl].id + '", "slt_id": "' + data.sla[sl].guarantees.ttr.id + '" }')
+                .then((id) => {
+                    console.log('id: ' + id);
+                }).catch((error) => {
+                    console.log(error);
+                    Promise.reject(new Error('Error creating lnkSLAToSLT: ' + data.sla[sl].name));
+                }));
         }
     }
     await Promise.all(promises);
@@ -176,7 +210,12 @@ async function importLinkContractToService(data) {
             for (const customer in data.orgs[org].services[service].customers) {
                 var customercontract_id = data.orgs[org].services[service].customers[customer].idContract;
                 var service_id = data.orgs[org].services[service].id;
-                var sla_id = data.orgs[org].services[service].idsla;
+                // we need to get the id of the SLA by accessing the SLA and checking the name
+                for (const sl in data.sla) {
+                    if (data.sla[sl].name === data.orgs[org].services[service].customers[customer].sla) {
+                        var sla_id = data.sla[sl].id;
+                    }
+                }
                 promises.push(create('lnkCustomerContractToService', '{ "customercontract_id": "' + customercontract_id + '", "service_id": "' + service_id + '", "sla_id": "' + sla_id + '" }')
                     .then((id) => {
                         console.log('id: ' + id);
