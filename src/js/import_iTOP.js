@@ -10,6 +10,10 @@ const importData = async (data) => {
         await importLinkSLAtoSLT(data);
         await importCustomerContracts(data); // Customer Agreements 
         await importLinkContractToService(data);
+        await importTeams(data);
+        await importPerson(data);
+        await importLinkPersonToTeam(data);
+        await importLinkTeamToService(data);
         return 'Import success!';
     } catch (error) {
         throw new Error(error);
@@ -90,33 +94,6 @@ async function importSLTs(data) {
     await Promise.all(promises);
     return data;
 }
-
-// async function importSLAs(data) {
-//     console.log("paso 4");
-//     const promises = [];
-//     for (const sl in data.sla) {
-//         for (const org in data.orgs){
-//             for (const service in data.orgs[org].services) {
-//                 for (const customer in data.orgs[org].services[service].customers) {
-//                     // if SLA does not exist, create it
-//                     if (data.orgs[org].services[service].customers[customer].sla === data.sla[sl].name && data.sla[sl].id === undefined) {
-//                         promises.push(create('SLA', '{ "name": "' + data.sla[sl].name + '", "description": "' + (data.sla[sl].description || '') + '", "org_id": "' + data.orgs[org].id + '" }')
-//                             .then((id) => {
-//                                 console.log('id: ' + id);
-//                                 data.sla[sl].id = id;
-//                             }).catch((error) => {
-//                                 console.log(error);
-//                                 Promise.reject(new Error('Error creating SLA: ' + data.sla[sl].name));
-//                             }));
-//                     }
-
-//                 }
-//             }
-//         }
-//     }
-//     await Promise.all(promises);
-//     return data;
-// }
 
 async function importSLAs(data) {
     console.log("paso 4");
@@ -223,6 +200,101 @@ async function importLinkContractToService(data) {
                         console.log(error);
                         Promise.reject(new Error('Error creating lnkCustomerContractToService: ' + customercontract_id));
                     }));
+            }
+        }
+    }
+    await Promise.all(promises);
+    return data;
+}
+
+async function importTeams(data) {
+    console.log("paso 8");
+    const promises = [];
+    for (const org in data.orgs){
+        for (const team in data.orgs[org].teams) {
+            var name = data.orgs[org].teams[team].name;
+            var org_id = data.orgs[org].id;
+            promises.push(create('Team', '{ "name": "' + name + '", "org_id": "' + org_id + '" }')
+                .then((id) => {
+                    console.log('id: ' + id);
+                    data.orgs[org].teams[team].id = id;
+                }).catch((error) => {
+                    console.log(error);
+                    Promise.reject(new Error('Error creating Team: ' + name));
+                }));
+        }
+    }
+    await Promise.all(promises);
+    return data;
+}
+
+async function importPerson(data) {
+    console.log("paso 9");
+    const promises = [];
+    for (const org in data.orgs){
+        for (const team in data.orgs[org].teams) {
+            for (const person in data.orgs[org].teams[team].members) {
+                var name = data.orgs[org].teams[team].members[person].name;
+                var email = data.orgs[org].teams[team].members[person].email;
+                var first_name = name;
+                var org_id = data.orgs[org].id;
+                promises.push(create('Person', '{ "name": "' + name + '", "first_name": "' + first_name + '", "email": "' + email + '", "org_id": "' + org_id + '" }')
+                    .then((id) => {
+                        console.log('id: ' + id);
+                        data.orgs[org].teams[team].members[person].id = id;
+                    }).catch((error) => {
+                        console.log(error);
+                        Promise.reject(new Error('Error creating Person: ' + name));
+                    }));
+            }
+        }
+    }
+    await Promise.all(promises);
+    return data;
+}
+
+async function importLinkPersonToTeam(data) {
+    console.log("paso 10");
+    const promises = [];
+    for (const org in data.orgs){
+        for (const team in data.orgs[org].teams) {
+            for (const person in data.orgs[org].teams[team].members) {
+                var person_id = data.orgs[org].teams[team].members[person].id;
+                var team_id = data.orgs[org].teams[team].id;
+                promises.push(create('lnkPersonToTeam', '{ "person_id": "' + person_id + '", "team_id": "' + team_id + '" }')
+                    .then((id) => {
+                        console.log('id: ' + id);
+                    }).catch((error) => {
+                        console.log(error);
+                        Promise.reject(new Error('Error creating lnkPersonToTeam: ' + person_id));
+                    }));
+            }
+        }
+    }
+    await Promise.all(promises);
+    return data;
+}
+
+async function importLinkTeamToService(data) {
+    console.log("paso 11");
+    const promises = [];
+    // orgs[org].teams[team].team_services[service].name must be the same as orgs[org].services[service].name
+    for (const org in data.orgs){
+        for (const team in data.orgs[org].teams) {
+            for (const service in data.orgs[org].teams[team].team_services) {
+                for (const service2 in data.orgs[org].services) {
+                    if (data.orgs[org].teams[team].team_services[service].name === data.orgs[org].services[service2].name) {
+                        var service_id = data.orgs[org].services[service2].id;
+                        var team_id = data.orgs[org].teams[team].id;
+                        promises.push(create('lnkContactToService', '{ "service_id": "' + service_id + '", "contact_id": "' + team_id + '" }')
+                            .then((id) => {
+                                console.log('id: ' + id);
+                            }).catch((error) => {
+                                console.log(error);
+                                Promise.reject(new Error('Error creating lnkContactToService: ' + service_id));
+                            }));
+                    }
+                }
             }
         }
     }
