@@ -2,7 +2,10 @@ const { app, BrowserWindow, dialog, ipcMain, net } = require('electron');
 const path = require('path')
 const fs = require('fs');
 const yaml = require('js-yaml');
-const { setFileData, getFileData, getValidationErrors } = require('./src/js/model/ImportModel.js');
+// const { setFileData, getFileData, getValidationErrors } = require('./src/js/model/ImportModel.js');
+var sct = require('./service-chain-tools');
+
+sct.init('itop');
 
 const createWindow = () => {
   // Create the browser window.
@@ -57,9 +60,9 @@ ipcMain.on('file-request', async (event) => {
       try {
         const data = yaml.load(fileContents);
         // load into model
-        setFileData(data);
+        sct.setFileData(data);
         // check that the structure of the data is correct
-        errors = getValidationErrors(data);
+        errors = sct.getValidationErrors(data);
         if (errors.length > 0) {
           event.sender.send('import-error', 'Invalid data structure: ' + errors.toString());
           return;
@@ -79,24 +82,24 @@ ipcMain.on('file-request', async (event) => {
 
 ipcMain.on('import-to-itop', async (event, server, port, api_path, username, password) => {
 
-  const { importData } = require('./src/js/import_iTOP.js');
-  const { setConfig, checkCredentials } = require('./src/js/config/config.js');
+  // const { importData } = require('./src/js/import_iTOP.js');
+  // const { setConfig, checkCredentials } = require('./src/js/config/config.js');
 
-  data = getFileData();
+  data = sct.getFileData();
   if (data == null) {
     event.sender.send('import-error', `No data to import`);
     return;
   }
   
-  setConfig(server, port, api_path, username, password);
+  sct.setConfig(server, port, api_path, username, password);
 
   // check that the credentials are correct
   try {
-    await checkCredentials();
+    await sct.checkCredentials();
 
     event.sender.send('import-status', 'importing...');
 
-    await Promise.all([importData(data)]).then(() => {
+    await Promise.all([sct.importData(data)]).then(() => {
       console.log('Import successful!');
       event.sender.send('import-status', 'Import successful!');
     }).catch(error => {
@@ -110,18 +113,18 @@ ipcMain.on('import-to-itop', async (event, server, port, api_path, username, pas
 
 ipcMain.on('export-from-itop', async (event, server, port, api_path, username, password) => {
 
-  const { exportData } = require('./src/js/export_iTOP.js');
-  const { setConfig, checkCredentials } = require('./src/js/config/config.js');
+  // const { exportData } = require('./src/js/export_iTOP.js');
+  // const { setConfig, checkCredentials } = require('./src/js/config/config.js');
   
-  setConfig(server, port, api_path, username, password);
+  sct.setConfig(server, port, api_path, username, password);
   
   // check that the credentials are correct
   try {
-    await checkCredentials();
+    await sct.checkCredentials();
 
     event.sender.send('export-status', 'exporting...');
 
-    await exportData().then((data) => {
+    await sct.exportData().then((data) => {
       console.log('Export successful!');
       // turn json into YAML
       var yamlFile = yaml.dump(data);
