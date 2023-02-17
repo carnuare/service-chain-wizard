@@ -55,7 +55,7 @@
     <div id="import-status" class="mb-2 mt-2">
     </div>
     <!-- Example of how the YAML should look like-->
-    <div id="file-data" class="mb-4 mt-3 w-75 bg-secondary text-white">
+    <div id="file-data" class="mb-4 mt-3 w-75 bg-secondary text-white" style="display: block;">
       <p class="text-center"><i>Example of how the YAML should look like</i></p>
       <pre>
         <code class="language-yaml">
@@ -98,7 +98,7 @@
     </div>
   </div>
   <div class="mt-2 d-flex align-items-center flex-column w-100">
-    <pre class="mermaid">
+    <pre class="mermaid" id="mermaid">
       flowchart LR
     O1["Organization 1"]
         O1 --- S1.1(["Service 1.1"])
@@ -127,7 +127,7 @@
         startOnLoad: true,
         theme: 'forest',
         flowchart: {
-          useMaxWidth: false,
+          useMaxWidth: true,
           htmlLabels: true
         }
       });

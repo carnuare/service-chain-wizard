@@ -23,7 +23,7 @@ const createWindow = () => {
   // Load app
   mainWindow.loadFile(path.join(__dirname, "index.html"));
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
   // Remove menu
   mainWindow.setMenu(null)
   mainWindow.setResizable(false);
