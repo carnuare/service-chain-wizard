@@ -278,26 +278,27 @@ async function importLinkPersonToTeam(data) {
 async function importLinkTeamToService(data) {
     console.log("paso 11");
     const promises = [];
-    // orgs[org].teams[team].team_services[service].name must be the same as orgs[org].services[service].name
+    // orgs[org].teams[team].name must be the same as orgs[org].services[service].teams[team].name
     for (const org in data.orgs){
-        for (const team in data.orgs[org].teams) {
-            for (const service in data.orgs[org].teams[team].team_services) {
-                for (const service2 in data.orgs[org].services) {
-                    if (data.orgs[org].teams[team].team_services[service].name === data.orgs[org].services[service2].name) {
-                        var service_id = data.orgs[org].services[service2].id;
-                        var team_id = data.orgs[org].teams[team].id;
-                        promises.push(create('lnkContactToService', '{ "service_id": "' + service_id + '", "contact_id": "' + team_id + '" }')
+        for (const service in data.orgs[org].services) {
+            for (const team in data.orgs[org].services[service].teams) {
+                for (const team2 in data.orgs[org].teams) {
+                    if (data.orgs[org].teams[team2].name === data.orgs[org].services[service].teams[team].name) {
+                        var team_id = data.orgs[org].teams[team2].id;
+                        var service_id = data.orgs[org].services[service].id;
+                        promises.push(create('lnkContactToService', '{ "contact_id": "' + team_id + '", "service_id": "' + service_id + '" }')
                             .then((id) => {
                                 console.log('id: ' + id);
                             }).catch((error) => {
                                 console.log(error);
-                                Promise.reject(new Error('Error creating lnkContactToService: ' + service_id));
+                                Promise.reject(new Error('Error creating lnkContactToService: ' + team_id));
                             }));
                     }
                 }
             }
         }
     }
+    
     await Promise.all(promises);
     return data;
 }
