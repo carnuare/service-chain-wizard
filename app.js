@@ -10,8 +10,8 @@ sct.init('itop');
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1300,
+    height: 900,
     webPreferences: {
       nodeIntegration: true, // false is default value after Electron v5
       contextIsolation: false, // true protect against prototype pollution
@@ -23,10 +23,10 @@ const createWindow = () => {
   // Load app
   mainWindow.loadFile(path.join(__dirname, "index.html"));
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
   // Remove menu
   mainWindow.setMenu(null)
-  mainWindow.setResizable(false);
+  // mainWindow.setResizable(false);
 }
 
 app.whenReady().then(() => {
