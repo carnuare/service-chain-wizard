@@ -5,6 +5,8 @@ const exportData = async () => {
     try {
         const exportJSON = {}; 
         await exportOrgs(exportJSON);
+        await exportTeams(exportJSON);
+        await exportMembers(exportJSON);
         await exportServices(exportJSON);
         await exportSLAs(exportJSON);
         await exportSLTs(exportJSON);
@@ -41,6 +43,88 @@ async function exportOrgs(json) {
     }
     );
 }
+
+async function exportTeams(json) {
+    console.log("paso 1.5");
+    return new Promise((resolve, reject) => {
+        getClass('Team', 'id, name, org_id, status')
+            .then((data) => {
+                console.log('data: ' + data);
+                for (let key in data.objects) {
+                    const team = data.objects[key];
+                    for (let org in json.orgs) {
+                        if (team.fields.org_id == json.orgs[org].id) {
+                            if (!json.orgs[org].teams) {
+                                json.orgs[org].teams = [];
+                            }
+                            json.orgs[org].teams.push({
+                                "name": team.fields.name,
+                                "id": team.fields.id,
+                                "status": team.fields.status
+                            });
+                        }
+                    }
+                }
+                resolve(json);
+            }).catch((error) => {
+                console.log(error);
+                reject(new Error('Error getting Teams'));
+            }
+            );
+    }
+    );
+}
+
+async function exportMembers(json) {
+    console.log("paso 1.75");
+    return new Promise((resolve, reject) => {
+        getClass('lnkPersonToTeam', 'person_id, team_id')
+            .then((data) => {
+                console.log('data: ' + data);
+                for (let key in data.objects) {
+                    const link = data.objects[key];
+                    for (let org in json.orgs) {
+                        if (json.orgs[org].teams) {
+                            for (let team in json.orgs[org].teams) {
+                                if (link.fields.team_id == json.orgs[org].teams[team].id) {
+                                    if (!json.orgs[org].teams[team].members) {
+                                        json.orgs[org].teams[team].members = [];
+                                    }
+                                    getClass('Person', 'id, name, email', link.fields.person_id)
+                                        .then((data) => {
+                                            console.log('data: ' + data);
+                                            // push to members if theres a link to the team
+                                            for (let key in data.objects) {
+                                                if (data.objects[key].fields.id == link.fields.person_id) {
+                                                    const person = data.objects[key];
+                                                    json.orgs[org].teams[team].members.push({
+                                                        "name": person.fields.name,
+                                                        "id": person.fields.id,
+                                                        "email": person.fields.email
+                                                    });
+                                                }
+                                            }
+                                        }).catch((error) => {
+                                            console.log(error);
+                                            reject(new Error('Error getting Person'));
+                                        }
+                                        );
+                                }
+                            }
+                        }
+                    }
+                }
+                resolve(json);
+            }).catch((error) => {
+                console.log(error);
+                reject(new Error('Error getting lnkPersonToTeam'));
+            }
+            );
+    }
+    );
+}
+
+
 
 async function exportServices(json) {
     console.log("paso 2");
@@ -233,6 +317,13 @@ async function cleanIds(json) {
                 delete json.orgs[org].services[service].id;
                 for (let customer in json.orgs[org].services[service].customers) {
                     delete json.orgs[org].services[service].customers[customer].id;
+                }
+            }
+            
+            for (let team in json.orgs[org].teams) {
+                delete json.orgs[org].teams[team].id;
+                for (let member in json.orgs[org].teams[team].members) {
+                    delete json.orgs[org].teams[team].members[member].id;
                 }
             }
         }

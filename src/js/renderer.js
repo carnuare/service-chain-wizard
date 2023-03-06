@@ -83,6 +83,7 @@ function jsonToMermaid(json) {
     }
     for (let service of org.services) {
       let providers = service.providers;
+      let teams = service.teams;
       if(providers){
         let providerNames = providers.map((p) => p.provider);
       }
@@ -93,7 +94,16 @@ function jsonToMermaid(json) {
       if (providers) {
         for (let provider of providers) {
           let cardinality = provider.cardinality || "1";
-          mermaid += `            ${service.name.replace(/ /g, "_")} --> |${cardinality}| ${provider.provider.replace(/ /g, "_")}["${provider.service}"]\n`;
+          let sla = provider.sla || "SLA";
+          // mermaid += `            ${provider.service.replace(/ /g, "_")} --> |${cardinality}| ${service.name.replace(/ /g, "_")}\n`;
+          mermaid += `            ${provider.service.replace(/ /g, "_")} === ${sla} ==> |${cardinality}| ${service.name.replace(/ /g, "_")}\n`;
+        }
+      }
+
+      // Add teams
+      if (teams) {
+        for (let team of teams) {
+          mermaid += `            ${service.name.replace(/ /g, "_")} -.- ${team.name.replace(/ /g, "_")}\n`;
         }
       }
 
@@ -116,6 +126,21 @@ function jsonToMermaid(json) {
     let ttoMax = s.guarantees.tto.max;
     let ttoLabel = `TTO < ${ttoMax.value}${ttoMax.unit}`;
     mermaid += `    ${name.replace(/ /g, "_")}{${ttrLabel}\\n${ttoLabel}}\n`;
+  }
+
+  // Add Team nodes
+  for (let org of orgs) {
+    if (!org.teams) {
+      continue;
+    }
+    for (let team of org.teams) {
+      members = "";
+      for (let member of team.members) {
+        members += `${member.name} - ${member.email}\n`;
+      }
+      mermaid += `    ${team.name.replace(/ /g, "_")}{{"${members}"}}\n`;
+      mermaid += `    style ${team.name.replace(/ /g, "_")} fill:#FFFFCC,stroke:#FFFFCC,stroke-width:2px\n`;
+    }
   }
 
   return mermaid;

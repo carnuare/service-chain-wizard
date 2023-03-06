@@ -6,3 +6,6 @@
 
 # build files
 /release-builds
+
+docker-compose.yml
+redmine.env
